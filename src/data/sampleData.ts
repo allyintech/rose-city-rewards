@@ -10,7 +10,36 @@ import {
   Volunteer,
   Address,
   EventRegistration,
+  AppUsageMetrics,
 } from '@/types/dataTypes';
+
+// Sample Event Registrations
+export const sampleEventRegistrations: EventRegistration[] = [
+  {
+    id: "reg-001",
+    eventId: "act-001",
+    volunteerId: "vol-001",
+    status: "registered",
+  },
+  {
+    id: "reg-002",
+    eventId: "act-002",
+    volunteerId: "vol-002",
+    status: "registered",
+  },
+  {
+    id: "reg-003",
+    eventId: "act-001",
+    volunteerId: "vol-002",
+    status: "canceled",
+  },
+];
+
+const calculateSpotsFilled = (eventId: string): number => {
+  return sampleEventRegistrations.filter(
+    (registration) => registration.eventId === eventId && registration.status === "registered"
+  ).length;
+};
 
 // Sample Volunteers
 export const sampleVolunteers: Volunteer[] = [
@@ -63,6 +92,7 @@ export const sampleTransactions: TransactionRecord[] = [
   },
 ];
 
+
 // Sample Volunteer Activities (Events)
 export const volunteerActivities: VolunteerActivity[] = [
   {
@@ -84,6 +114,9 @@ export const volunteerActivities: VolunteerActivity[] = [
     description: "Help maintain Forest Park's extensive trail network and care for native plants.",
     supervisorName: "Mike Chen",
     supervisorEmail: "mchen@forestpark.org",
+    spots_total: 20, 
+    credits: 100,
+    spots_filled: calculateSpotsFilled("act-001"), // Dynamically calculated
   },
   {
     id: "act-002",
@@ -104,28 +137,32 @@ export const volunteerActivities: VolunteerActivity[] = [
     description: "Support our weekly food box distribution program.",
     supervisorName: "Sarah Johnson",
     supervisorEmail: "sarah@oregonfoodbank.org",
-  },
-];
-
-// Sample Event Registrations
-export const sampleEventRegistrations: EventRegistration[] = [
-  {
-    id: "reg-001",
-    eventId: "act-001",
-    volunteerId: "vol-001",
-    status: "attended",
+    spots_total: 15, 
+    credits: 75,
+    spots_filled: calculateSpotsFilled("act-002"), // Dynamically calculated
   },
   {
-    id: "reg-002",
-    eventId: "act-002",
-    volunteerId: "vol-002",
-    status: "attended",
-  },
-  {
-    id: "reg-003",
-    eventId: "act-001",
-    volunteerId: "vol-002",
-    status: "canceled",
+    id: "act-003",
+    code: "VOL-2024-GHI789",
+    name: "Community Garden Cleanup",
+    organization: "Portland Green Spaces",
+    category: "Community Service",
+    hours: 2,
+    date: new Date("2024-03-20"),
+    time: "10:30 AM",
+    description: "Join us in cleaning and maintaining our community gardens.",
+    impact: "Revitalize local green spaces",
+    supervisorName: "Emma Lee",
+    supervisorEmail: "emma@greenspaces.org",
+    address: {
+      street: "600 SE Grand Ave",
+      city: "Portland",
+      state: "OR",
+      postalCode: "97214",
+    },
+    credits: 50,
+    spots_total: 10,
+    spots_filled: 3,
   },
 ];
 
@@ -220,3 +257,14 @@ export const impactMetrics: ImpactMetrics = {
   communityBenefit: "15,000 people served",
   sustainabilityScore: 88,
 };
+
+export const appUsageMetrics: AppUsageMetrics = {
+  totalUsers: 1250,
+  activeUsers: 800,
+  totalEvents: 320,
+  totalHours: 14000,
+  totalCredits: 5200,
+  totalBusinesses: 50,
+  totalVolunteers: 900
+};
+

@@ -26,6 +26,9 @@ export interface EventDetails extends BaseMetric {
   supervisorName: string;
   supervisorEmail: string;
   address: Address;
+  spots_total: number;
+  spots_filled?: number;
+  credits: number;
 }
 
 // Form Data for Creating & Editing Events (UI Focused)
@@ -41,6 +44,8 @@ export interface EventFormData {
   supervisorName: string;
   supervisorEmail: string;
   address: Address;
+  credits: number;
+  spots_total: number;
 }
 
 // Simplified Event Registration
@@ -173,3 +178,10 @@ export interface ImpactMetrics extends BaseMetric {
   communityBenefit: string;
   sustainabilityScore: number;
 }
+
+export interface BusinessSector {
+  id: string; // Unique identifier
+  name: "Local Retail" | "Food Services" | "Professional" | "Health & Wellness" | "Education" | "Other"; // Sector names
+  value: number; // Number of businesses in this sector
+}
+
