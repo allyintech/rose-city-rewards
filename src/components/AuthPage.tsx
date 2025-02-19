@@ -1,12 +1,13 @@
-'use client'
+'use client';
 
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import { signUp, signIn, refreshSession } from '@/lib/auth'; // Import auth functions
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,31 +31,46 @@ const AuthPage: React.FC<Props> = ({ onAuthenticated }) => {
     name: ''
   });
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     // Basic validation
     if (!formData.email || !formData.password) {
-      setError('Please fill in all required fields');
+      setError('Please fill in all required fields.');
+      setLoading(false);
       return;
     }
 
     if (isSignUp && !formData.name) {
-      setError('Please enter your name');
+      setError('Please enter your name.');
+      setLoading(false);
       return;
     }
 
     try {
-      // Here you would typically make an API call to your auth service
-      // For now, we'll simulate a successful authentication
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      onAuthenticated();
-    } catch (err) {
-      setError('Authentication failed. Please try again.');
+      const redirectUrl = `${window.location.origin}/auth/callback`; // Define redirect URL
+
+      if (isSignUp) {
+        // Sign up the user
+        await signUp(formData.name!, formData.email, formData.password, redirectUrl);
+      } else {
+        // Sign in the user
+        await signIn(formData.email, formData.password);
+        await refreshSession();e
+      }
+
+      onAuthenticated(); // Call callback function on success
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -77,8 +93,8 @@ const AuthPage: React.FC<Props> = ({ onAuthenticated }) => {
             </CardTitle>
             <CardDescription className="text-center">
               {isSignUp 
-                ? 'Sign up to start earning rewards for volunteering'
-                : 'Sign in to access your volunteer rewards'}
+                ? 'Sign up to start earning rewards for volunteering.'
+                : 'Sign in to access your volunteer rewards.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -149,8 +165,9 @@ const AuthPage: React.FC<Props> = ({ onAuthenticated }) => {
               <Button 
                 type="submit" 
                 className="w-full bg-red-600 hover:bg-red-700"
+                disabled={loading}
               >
-                {isSignUp ? 'Create Account' : 'Sign In'}
+                {loading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 

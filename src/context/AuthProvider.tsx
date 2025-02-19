@@ -1,61 +1,57 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Session, User } from "@supabase/supabase-js";
+import { createContext, useState, useEffect, useContext } from "react";
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Function to fetch user session and update state
+  const fetchUser = async () => {
+    try {
+      setLoading(true);
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) throw error;
+      
+      setUser(session?.user || null);
+    } catch (error) {
+      console.error("Error fetching session:", error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
+    fetchUser(); // Load user on mount
 
-        console.log("Fetched session:", data); // Debugging log
-        setUser(data?.session?.user || null);
-        setSession(data?.session || null);
-      } catch (error) {
-        console.error("Error fetching session:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSession();
-
-    // Subscribe to auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state changed:", session); // Debugging log
+    // Listen to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth state changed: ${event}`);
       setUser(session?.user || null);
-      setSession(session);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => authListener?.subscription?.unsubscribe(); // Cleanup listener on unmount
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

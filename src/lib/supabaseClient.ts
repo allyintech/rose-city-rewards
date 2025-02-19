@@ -5,8 +5,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true, // Ensures session persists
-    autoRefreshToken: true, // Auto-refreshes token
-    detectSessionInUrl: true, // Ensures redirects work properly
+    persistSession: true, // Ensures the session is stored
+    autoRefreshToken: true, //  Automatically refreshes the session
+    detectSessionInUrl: true, //  Required for OAuth logins
   },
 });

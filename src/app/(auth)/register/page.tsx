@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth";
+import { signUp, refreshSession } from "@/lib/auth"; // Import refreshSession to refresh after sign-up
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,22 +19,25 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
 
-    console.log("Submitting form with data:", formData);
-
-    if (!formData.name || !formData.email || !formData.password) {
-      setError("Please fill in all required fields");
+    if (!formData.email || !formData.password || !formData.name) {
+      setError("Please fill in all required fields.");
       setLoading(false);
       return;
     }
 
     try {
-      const user = await signUp(formData.name, formData.email, formData.password);
-      console.log("Sign-up successful:", user);
+      // Define the correct redirect URL
+      const redirectUrl = `${window.location.origin}/volunteer`;
 
-      // Ensure redirection occurs after async state updates
-      setTimeout(() => router.push("/volunteer"), 500);
+      // Sign up the user
+      await signUp(formData.name, formData.email, formData.password, redirectUrl);
+
+      // Ensure the session is properly established after sign-up
+      await refreshSession();
+
+      // Redirect to the volunteer page after successful sign-up and session refresh
+      router.push(redirectUrl);
     } catch (err: any) {
-      console.error("Sign-up failed:", err);
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
@@ -52,61 +55,46 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
             <CardDescription className="text-center">
-              Sign up to start earning rewards for volunteering
+              Sign up to start earning rewards for volunteering.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && <div className="mb-4 p-2 bg-red-50 text-red-600 text-sm rounded">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name Input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    name="name"
-                    placeholder="Enter your full name"
-                    className="pl-10"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
+                <Input
+                  name="name"
+                  placeholder="Enter your name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
               </div>
 
-              {/* Email Input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    className="pl-10"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
+                <Input
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
               </div>
 
-              {/* Password Input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    className="pl-10"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                </div>
+                <Input
+                  name="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                />
               </div>
 
               <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>
@@ -115,7 +103,6 @@ export default function RegisterPage() {
               </Button>
             </form>
 
-            {/* Login Link */}
             <div className="text-center mt-4">
               <p className="text-sm">
                 Already have an account?{" "}

@@ -1,46 +1,37 @@
 import { supabase } from "@/lib/supabaseClient";
 
-// ✅ Get Current Session
-export async function getSession() {
+// Get Current User Data
+export async function getUser() {
   try {
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
-    return data.session;
+    return data.user;
   } catch (error) {
-    console.error("Error fetching session:", error);
+    console.error("Error fetching user:", error);
     return null;
   }
 }
 
-// ✅ Sign Up Function (Handles Email Confirmation & Metadata)
-export async function signUp(name: string, email: string, password: string) {
+// Sign Up Function
+export async function signUp(name: string, email: string, password: string, redirectUrl: string) {
   if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
     throw new Error("Password must be at least 8 characters, include a number, and an uppercase letter.");
   }
 
   try {
-    // Sign up user without metadata first
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { name },
+        emailRedirectTo: redirectUrl,
       },
     });
 
     if (error) throw error;
 
-    // If user is created, update metadata separately
-    if (data?.user) {
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { name },
-      });
-
-      if (metadataError) {
-        console.error("Metadata update error:", metadataError);
-        throw metadataError;
-      }
-    }
+    // Manually refresh session after sign-up
+    await refreshSession();
 
     return data.user;
   } catch (error) {
@@ -49,15 +40,16 @@ export async function signUp(name: string, email: string, password: string) {
   }
 }
 
-// ✅ Sign In Function (Ensures Fresh Login)
+// Sign In Function
 export async function signIn(email: string, password: string) {
   try {
-    // Ensure no conflicting session exists before signing in
-    await supabase.auth.signOut();
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) throw error;
+
+    // **Ensure the session is updated after sign-in**
+    await refreshSession();
+
     return data.user;
   } catch (error) {
     console.error("Sign-in error:", error);
@@ -65,7 +57,7 @@ export async function signIn(email: string, password: string) {
   }
 }
 
-// ✅ Request Password Reset (Updated Naming Convention)
+// Request Password Reset
 export async function requestPasswordReset(email: string) {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -79,7 +71,7 @@ export async function requestPasswordReset(email: string) {
   }
 }
 
-// ✅ Update User Password After Reset
+// Update User Password After Reset
 export async function updatePassword(newPassword: string) {
   try {
     const { data, error } = await supabase.auth.updateUser({ password: newPassword });
@@ -92,19 +84,7 @@ export async function updatePassword(newPassword: string) {
   }
 }
 
-// ✅ Get Current User Data
-export async function getUser() {
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return data.user;
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    return null;
-  }
-}
-
-// ✅ Listen to Authentication State Changes
+// Listen to Authentication State Changes
 export function listenToAuthChanges(callback: (session: any) => void) {
   const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
     console.log(`Auth event: ${event}`);
@@ -114,7 +94,7 @@ export function listenToAuthChanges(callback: (session: any) => void) {
   return () => listener?.subscription?.unsubscribe();
 }
 
-// ✅ Refresh User Session (Ensures Persisted Authentication)
+// **Refresh User Session**
 export async function refreshSession() {
   try {
     const { data, error } = await supabase.auth.refreshSession();
@@ -126,7 +106,7 @@ export async function refreshSession() {
   }
 }
 
-// ✅ Sign Out Function
+// Sign Out Function
 export async function signOut() {
   try {
     const { error } = await supabase.auth.signOut();

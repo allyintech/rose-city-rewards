@@ -1,34 +1,38 @@
-import { Activity, Business, Achievement, VolunteerYearData } from '@/data/sampleData';
+import React from 'react';
+import { VolunteerActivity, Business, Achievement, VolunteerData, YearData } from '@/types/dataTypes';
 
+// Home Page Props
 export interface HomePageProps {
   balance: number;
-  activities: Activity[];
+  activities: VolunteerActivity[];
   setCurrentPage: (page: PageType) => void;
 }
 
-export interface EarnPageProps {
-  // If you need to add props for EarnPage later
-}
+// Earn Page Props (Placeholder for future use)
+export interface EarnPageProps {}
 
+// Spend Page Props
 export interface SpendPageProps {
   businesses: Business[];
 }
 
+// History Page Props
 export interface HistoryPageProps {
-  activities: Activity[];
+  activities: VolunteerActivity[];
 }
 
+// Profile Page Props
 export interface ProfilePageProps {
-  activities: Activity[];
+  activities: VolunteerActivity[];
   achievements: Achievement[];
-  volunteerData: VolunteerYearData;
+  volunteerData: VolunteerData;
   showReport: boolean;
   setShowReport: (show: boolean) => void;
   selectedYear: string;
   setSelectedYear: (year: string) => void;
 }
 
-// Navigation related types
+// Navigation Button Props
 export interface NavButtonProps {
   icon: React.ReactNode;
   label: string;
@@ -36,5 +40,5 @@ export interface NavButtonProps {
   onClick: () => void;
 }
 
-// Common shared types
+// Page Type Definitions
 export type PageType = 'home' | 'earn' | 'spend' | 'history' | 'profile';
