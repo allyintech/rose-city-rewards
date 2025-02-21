@@ -7,7 +7,6 @@ import {
   Calendar,
   Users,
   Trash2,
-  Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,12 @@ import { supabase } from "@/lib/supabaseClient";
 import CoordinatorTable from "@/app/coordinator/components/CoordinatorTable";
 import { VolunteerActivity, EventFormData, EventRegistration } from "@/types/dataTypes";
 import { generateNewCode } from "@/utils/helpers";
+import { volunteerActivities } from "@/data/sampleData"; 
 
 // Initial form data
 const initialFormData: EventFormData = {
   name: "",
-  organization: "",
+  organization: "Central City Concern",
   category: "",
   hours: 0,
   date: new Date(),
@@ -36,14 +36,13 @@ const initialFormData: EventFormData = {
     postalCode: "",
   },
   credits: 0,
-  spots_total: 20, // Default value
+  spots_total: 20,
 };
 
 export default function EventsPage() {
   const [events, setEvents] = useState<VolunteerActivity[]>([]);
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<VolunteerActivity | null>(null);
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
 
@@ -51,91 +50,56 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
-  // Fetch all events for the coordinator's organization
+  /** Fetch events from Supabase */
   const fetchEvents = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .eq("organization", "Your Organization"); // Replace dynamically
+    try {
+      const { data, error } = await supabase.from("events").select("*");
 
-    if (!error) setEvents(data || []);
+      if (error) {
+        console.error("Error fetching events:", error.message);
+        setEvents(volunteerActivities); // Fallback to sample events
+      } else {
+        setEvents(data.length > 0 ? data : volunteerActivities);
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setEvents(volunteerActivities); // Fallback in case of unexpected error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Add event to Supabase */
+  const handleAddEvent = async () => {
+    if (!formData.name || !formData.category || !formData.date || !formData.time) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    setLoading(true);
+
+    const newEvent = {
+      ...formData,
+      code: generateNewCode(),
+      date: formData.date.toISOString(),
+      spots_filled: 0,
+    };
+
+    const { data, error } = await supabase.from("events").insert([newEvent]).select("*");
+
+    if (!error) {
+      setEvents((prev) => [...prev, data[0]]);
+      setShowAddForm(false);
+      setFormData(initialFormData);
+    } else {
+      console.error("Error adding event:", error.message);
+    }
+
     setLoading(false);
   };
 
-  // Fetch registrations for a specific event
-  const fetchRegistrations = async (eventId: string) => {
-    const { data, error } = await supabase
-      .from("event_registrations")
-      .select("*")
-      .eq("eventId", eventId);
-
-    if (!error) {
-      const formattedData = data.map((reg) => ({
-        eventId: reg.eventId,
-        volunteerId: reg.volunteerId,
-        status: reg.status,
-      }));
-      setRegistrations(formattedData);
-    }
-  };
-
-  // Handle form input changes
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>, addressField?: keyof typeof formData.address) => {
-    const { name, value } = e.target;
-
-    if (addressField) {
-      setFormData((prev) => ({
-        ...prev,
-        address: {
-          ...prev.address,
-          [addressField]: value,
-        },
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-  };
-
-  // Add new event to Supabase
-  const handleAddEvent = async () => {
-    const newEvent = {
-      ...formData,
-      id: `event-${Date.now()}`,
-      code: generateNewCode(),
-      date: new Date(formData.date),
-      spots_filled: 0, // New events start with 0 registered volunteers
-    };
-
-    const { error } = await supabase.from("events").insert([newEvent]);
-
-    if (!error) {
-      setEvents([...events, newEvent]);
-      setShowAddForm(false);
-      setFormData(initialFormData);
-    }
-  };
-
-  // Update existing event in Supabase
-  const handleUpdateEvent = async () => {
-    if (!selectedEvent) return;
-
-    const { error } = await supabase
-      .from("events")
-      .update({ ...formData })
-      .eq("id", selectedEvent.id);
-
-    if (!error) {
-      setEvents(events.map((event) => (event.id === selectedEvent.id ? { ...event, ...formData } : event)));
-      setSelectedEvent(null);
-      setFormData(initialFormData);
-    }
-  };
-
-  // Delete event from Supabase
+  /** Delete event from Supabase */
   const handleDeleteEvent = async (eventId: string) => {
     const confirmed = window.confirm("Are you sure you want to delete this event?");
     if (!confirmed) return;
@@ -144,6 +108,8 @@ export default function EventsPage() {
 
     if (!error) {
       setEvents(events.filter((event) => event.id !== eventId));
+    } else {
+      console.error("Error deleting event:", error.message);
     }
   };
 
@@ -163,35 +129,31 @@ export default function EventsPage() {
         <div className="space-y-4">
           {events.map((event) => (
             <Card key={event.id ?? `event-${Math.random()}`} className="overflow-hidden">
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <CardTitle>{event.name}</CardTitle>
-                <CardDescription>{event.organization}</CardDescription>
+                <CardDescription className="text-gray-500">{event.organization}</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-4 flex-1">
-                    <p className="text-gray-600">{event.description}</p>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="w-4 h-4" />
-                        <span>{new Date(event.date).toLocaleDateString()} at {event.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Users className="w-4 h-4" />
-                        <span>{event.spots_filled}/{event.spots_total} spots filled</span>
-                      </div>
-                    </div>
-
-                    <QRCodeCanvas value={event.code} size={100} />
-                    <p className="text-gray-600 font-mono text-sm">{event.code}</p>
+              <CardContent className="p-6 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                {/* Left Side: Event Details */}
+                <div className="flex-1 space-y-2">
+                  <p className="text-gray-600">{event.description}</p>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="w-4 h-4" />
+                    <span>{new Date(event.date).toLocaleDateString()} at {event.time}</span>
                   </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Users className="w-4 h-4" />
+                    <span>{event.spots_filled}/{event.spots_total} spots filled</span>
+                  </div>
+                </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => fetchRegistrations(event.id ?? "")}>
-                      View Registrations
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedEvent(event)}>
+                {/* Right Side: QR Code & Buttons */}
+                <div className="flex flex-col items-center space-y-2">
+                  <QRCodeCanvas value={event.code} size={100} />
+                  <span className="text-sm text-gray-700 font-mono">{event.code}</span>
+
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" size="sm">
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleDeleteEvent(event.id ?? "")}>
@@ -205,10 +167,52 @@ export default function EventsPage() {
         </div>
       )}
 
-      {registrations.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-4">Registered Volunteers</h2>
-          <CoordinatorTable columns={["Volunteer", "Status"]} data={registrations} />
+      {/* Add Event Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white p-6 rounded-lg shadow-lg">
+            <CardHeader>
+              <CardTitle>Add New Event</CardTitle>
+              <CardDescription>Fill out the details to create a new volunteer event.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { label: "Event Name", name: "name", type: "text" },
+                { label: "Category", name: "category", type: "text" },
+                { label: "Date", name: "date", type: "date" },
+                { label: "Time", name: "time", type: "time" },
+                { label: "Description", name: "description", type: "text" },
+                { label: "Impact", name: "impact", type: "text" },
+                { label: "Supervisor Name", name: "supervisorName", type: "text" },
+                { label: "Supervisor Email", name: "supervisorEmail", type: "email" },
+                { label: "Street", name: "street", type: "text", addressField: true },
+                { label: "City", name: "city", type: "text", addressField: true },
+                { label: "State", name: "state", type: "text", addressField: true },
+                { label: "Postal Code", name: "postalCode", type: "text", addressField: true },
+                { label: "Spots Total", name: "spots_total", type: "number" },
+                { label: "Credits", name: "credits", type: "number" },
+              ].map(({ label, name, type, addressField }) => (
+                <div key={name}>
+                  <label className="block text-sm font-medium text-gray-700">{label}</label>
+                  <input
+                    type={type}
+                    value={addressField 
+                      ? String(formData.address[name as keyof typeof formData.address] ?? "")
+                      : String(formData[name as keyof EventFormData] ?? "")}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, [name]: e.target.value }))}
+                    className="border p-2 w-full mb-2"
+                  />
+                </div>
+              ))}
+
+              <Button className="bg-green-600 hover:bg-green-700 w-full" onClick={handleAddEvent}>
+                Save Event
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setShowAddForm(false)}>
+                Cancel
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

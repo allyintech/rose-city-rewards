@@ -7,7 +7,8 @@ import { Volunteer, VolunteerActivity } from '@/types/dataTypes';
 import { sampleVolunteers, volunteerActivities } from '@/data/sampleData';
 
 interface TopVolunteersCardProps {
-  organization: string; // The organization whose top volunteers we are fetching
+  organization: string; // required property
+  volunteers: Volunteer [];
 }
 
 export const TopVolunteersCard: React.FC<TopVolunteersCardProps> = ({ organization }) => {

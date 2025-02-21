@@ -26,7 +26,7 @@ export default function CoordinatorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Fetch Data from API
+  //  Fetch Data from API
   useEffect(() => {
     async function fetchData() {
       try {
@@ -109,7 +109,7 @@ export default function CoordinatorDashboard() {
       <CreditActivityCard creditsEarned={creditsEarned} creditsSpent={creditsSpent} />
 
       {/*  Top Volunteers (Fetched from API) */}
-      <TopVolunteersCard volunteers={topVolunteers} />
+      <TopVolunteersCard volunteers={topVolunteers} organization="Central City Concern" />
 
       {/*  Recent Redemptions (Fetched from API) */}
       <RecentRedemptionsCard redemptions={recentRedemptions} />

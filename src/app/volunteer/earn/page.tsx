@@ -36,11 +36,11 @@ export default function EventsPage() {
   useEffect(() => {
     async function fetchEvents() {
       const { data: eventsData, error } = await supabase
-        .from("events_with_spots") // ✅ Query the new Supabase view
+        .from("events") // ✅ Query the new Supabase view
         .select("*");
 
       if (error) {
-        console.error("❌ Error fetching events:", error.message || error);
+        console.error(" Error fetching events:", error.message || error);
         setEvents(volunteerActivities.map(event => ({ ...event, spots_filled: calculateSpotsFilled(event.id ?? "") })));
       } else {
         setEvents(eventsData);
